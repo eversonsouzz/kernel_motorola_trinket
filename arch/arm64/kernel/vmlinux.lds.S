@@ -253,14 +253,11 @@ SECTIONS
 	.bss : {			/* bss segment		*/
          RTIC_BSS
 	}
+}
 
 #ifdef CONFIG_EFI
-	/* Aliases seguros para a EFI stub utilizando PROVIDE */
-	PROVIDE(__efistub__text  = _text);
-	PROVIDE(__efistub__edata = _edata);
-	PROVIDE(__efistub__end   = _end);
+#include "image-vars.h"
 #endif
-}
 
 /*
  * The HYP init code and ID map text can't be longer than a page each,
