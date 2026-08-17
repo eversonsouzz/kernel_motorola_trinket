@@ -192,7 +192,7 @@ SECTIONS
 		*(.rela .rela*)
 	}
 
-	__rela_offset	= ABSOLUTE(ADDR(.rela.dyn) - KIMAGE_VADDR);
+	__rela_offset	= ADDR(.rela.dyn) - KIMAGE_VADDR;
 	__rela_size	= SIZEOF(.rela.dyn);
 
 	. = ALIGN(SEGMENT_ALIGN);
@@ -222,7 +222,7 @@ SECTIONS
 	}
 
 	PECOFF_EDATA_PADDING
-	__pecoff_data_rawsize = ABSOLUTE(. - __initdata_begin);
+	__pecoff_data_rawsize = . - __initdata_begin;
 	_edata = .;
 
 	BSS_SECTION(0, 0, 0)
@@ -243,7 +243,7 @@ SECTIONS
 	. += PAGE_SIZE;
 #endif
 
-	__pecoff_data_size = ABSOLUTE(. - __initdata_begin);
+	__pecoff_data_size = . - __initdata_begin;
 	_end = .;
 
 	STABS_DEBUG
@@ -254,6 +254,15 @@ SECTIONS
          RTIC_BSS
 	}
 }
+
+#ifdef CONFIG_EFI
+/*
+ * Aliases for the EFI stub to locate kernel regions safely without absolute reloc errors
+ */
+__efistub__text	= _text;
+__efistub__edata	= _edata;
+__efistub__end		= _end;
+#endif
 
 /*
  * The HYP init code and ID map text can't be longer than a page each,
