@@ -1,4 +1,4 @@
-name: Build Kernel Clang
+Name: Build Kernel Clang
 
 on:
   workflow_dispatch:
@@ -15,7 +15,6 @@ jobs:
 
       - name: Setup Compilation Environment
         run: |
-          # Redireciona os mirrors instáveis da Azure para os servidores principais da Canonical
           sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/g' /etc/apt/sources.list
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends \
@@ -34,21 +33,33 @@ jobs:
         run: |
           curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
 
-      - name: Build Kernel
+      - name: Patch RTIC Dependencies & Build
         run: |
-          # Adiciona o Clang ao PATH conforme as diretrizes do ClangBuiltLinux
           CLANG_DIR="$PWD/toolchain/clang"
           export PATH="$CLANG_DIR/bin:${PATH}"
           
+          # Desabilita o RTIC nas regras do Kconfig e do defconfig antes de gerar o .config
+          find . -type f -name "Kconfig*" -exec sed -i 's/default y/default n/g' {} + || true
+          sed -i 's/CONFIG_SELINUX_RTIC=y/CONFIG_SELINUX_RTIC=n/g' arch/arm64/configs/vendor/sofiar_defconfig || true
+          sed -i 's/CONFIG_MSM_RTIC=y/CONFIG_MSM_RTIC=n/g' arch/arm64/configs/vendor/sofiar_defconfig || true
+          
           mkdir -p out
           
-          # Gera a árvore de configuração para a plataforma Sofia
+          # Gera a árvore de configuração
           make O=out ARCH=arm64 vendor/sofiar_defconfig
           
-          # Compila o código C com Clang e delega a montagem/linkagem para o Binutils (ld.bfd)
+          # Garante o desligamento direto no .config final
+          scripts/config --file out/.config --disable CONFIG_MSM_RTIC
+          scripts/config --file out/.config --disable CONFIG_QCACLD_RTIC
+          scripts/config --file out/.config --disable CONFIG_SELINUX_RTIC
+          
+          make O=out ARCH=arm64 olddefconfig
+          
+          # Compila instruindo o Clang a não usar código de posição independente (PIC/PIE)
           make -j$(nproc --all) O=out \
             ARCH=arm64 \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-gnu- \
-            CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            KCFLAGS="-fno-pic -fno-pie"
