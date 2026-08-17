@@ -120,11 +120,11 @@ SECTIONS
 	. = KIMAGE_VADDR + TEXT_OFFSET;
 
 	.head.text : {
-		_text = .;
+		_text = ABSOLUTE(.);
 		HEAD_TEXT
 	}
 	.text : {			/* Real text segment		*/
-		_stext = .;		/* Text and read-only data	*/
+		_stext = ABSOLUTE(.);	/* Text and read-only data	*/
 			__exception_text_start = .;
 			*(.exception.text)
 			__exception_text_end = .;
@@ -147,7 +147,7 @@ SECTIONS
 	}
 
 	. = ALIGN(SEGMENT_ALIGN);
-	_etext = .;			/* End of text section */
+	_etext = ABSOLUTE(.);		/* End of text section */
 
 	RO_DATA(PAGE_SIZE)		/* everything from this point to     */
 	EXCEPTION_TABLE(8)		/* __init_begin will be marked RO NX */
@@ -199,8 +199,8 @@ SECTIONS
 	__initdata_end = .;
 	__init_end = .;
 
-	_data = .;
-	_sdata = .;
+	_data = ABSOLUTE(.);
+	_sdata = ABSOLUTE(.);
 	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_ALIGN)
 
 	/*
@@ -223,7 +223,7 @@ SECTIONS
 
 	PECOFF_EDATA_PADDING
 	__pecoff_data_rawsize = ABSOLUTE(. - __initdata_begin);
-	_edata = .;
+	_edata = ABSOLUTE(.);
 
 	BSS_SECTION(0, 0, 0)
 
@@ -244,7 +244,7 @@ SECTIONS
 #endif
 
 	__pecoff_data_size = ABSOLUTE(. - __initdata_begin);
-	_end = .;
+	_end = ABSOLUTE(.);
 
 	STABS_DEBUG
 
