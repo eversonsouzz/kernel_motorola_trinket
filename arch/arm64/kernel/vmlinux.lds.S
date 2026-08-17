@@ -255,10 +255,10 @@ SECTIONS
 	}
 
 #ifdef CONFIG_EFI
-	/* Aliases sem ABSOLUTE para evitar erros de relocalização PC-relative no lld */
-	__efistub__text  = _text;
-	__efistub__edata = _edata;
-	__efistub__end   = _end;
+	/* Aliases seguros para a EFI stub utilizando PROVIDE */
+	PROVIDE(__efistub__text  = _text);
+	PROVIDE(__efistub__edata = _edata);
+	PROVIDE(__efistub__end   = _end);
 #endif
 }
 
