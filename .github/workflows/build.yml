@@ -1,4 +1,4 @@
-Name: Build Kernel Clang
+name: Build Kernel Clang
 
 on:
   workflow_dispatch:
