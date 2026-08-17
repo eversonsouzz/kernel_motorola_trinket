@@ -1,4 +1,4 @@
-name: Build Kernel Clang
+Name: Build Kernel Clang
 
 on:
   workflow_dispatch:
@@ -38,12 +38,11 @@ jobs:
           CLANG_DIR="$PWD/toolchain/clang"
           export PATH="$CLANG_DIR/bin:${PATH}"
           
-          # Remove linhas de RTIC do defconfig da fabricante antes de gerar a config
+          # Remove linhas de RTIC do defconfig da fabricante
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           
-          # Remove as marcacoes de secao .rtic do SELinux para nao quebrar o linker no vmlinux
-          find security/selinux/ -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i 's/__attribute__((section("\.bss\.rtic")))//g' {} +
-          find security/selinux/ -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i 's/__attribute__((section("\.data\.rtic")))//g' {} +
+          # Limpa secoes .rtic apenas do codigo fonte (C, H, S) sem tocar no .git ou out
+          find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
           
           mkdir -p out
           
