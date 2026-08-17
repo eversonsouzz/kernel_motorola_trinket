@@ -38,24 +38,26 @@ jobs:
           CLANG_DIR="$PWD/toolchain/clang"
           export PATH="$CLANG_DIR/bin:${PATH}"
           
-          # Desabilita o RTIC nas regras do Kconfig e do defconfig antes de gerar o .config
-          find . -type f -name "Kconfig*" -exec sed -i 's/default y/default n/g' {} + || true
-          sed -i 's/CONFIG_SELINUX_RTIC=y/CONFIG_SELINUX_RTIC=n/g' arch/arm64/configs/vendor/sofiar_defconfig || true
-          sed -i 's/CONFIG_MSM_RTIC=y/CONFIG_MSM_RTIC=n/g' arch/arm64/configs/vendor/sofiar_defconfig || true
+          # Remove linhas de RTIC do defconfig da fabricante antes de gerar a config
+          sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           
           mkdir -p out
           
-          # Gera a árvore de configuração
+          # Gera a arvore de configuracao inicial
           make O=out ARCH=arm64 vendor/sofiar_defconfig
           
-          # Garante o desligamento direto no .config final
-          scripts/config --file out/.config --disable CONFIG_MSM_RTIC
-          scripts/config --file out/.config --disable CONFIG_QCACLD_RTIC
-          scripts/config --file out/.config --disable CONFIG_SELINUX_RTIC
+          # Garante permissao de execucao no script de config
+          chmod +x scripts/config
           
+          # Desativa explicitamente as flags do RTIC no .config gerado
+          ./scripts/config --file out/.config --disable MSM_RTIC
+          ./scripts/config --file out/.config --disable QCACLD_RTIC
+          ./scripts/config --file out/.config --disable SELINUX_RTIC
+          
+          # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
           
-          # Compila instruindo o Clang a não usar código de posição independente (PIC/PIE)
+          # Compilacao
           make -j$(nproc --all) O=out \
             ARCH=arm64 \
             CC=clang \
