@@ -32,21 +32,19 @@ jobs:
 
       - name: Build Kernel
         run: |
-          export ARCH=arm64
-          export SUBARCH=arm64
-          
-          # Adiciona o Clang ao PATH e define o diretório base da toolchain
+          # Adiciona o Clang e o GCC ao PATH conforme o guia do Nathan
           CLANG_DIR="$PWD/toolchain/clang"
-          export PATH="$CLANG_DIR/bin:$PATH"
+          export PATH="$CLANG_DIR/bin:${PATH}"
           
           mkdir -p out
           
-          make O=out vendor/sofiar_defconfig
+          # Gera o defconfig
+          make O=out ARCH=arm64 vendor/sofiar_defconfig
           
-          make -j$(nproc) O=out \
+          # Compila o kernel usando Clang como compilador e Binutils (GCC/ld.bfd) como montador/linker
+          make -j$(nproc --all) O=out \
             ARCH=arm64 \
             CC=clang \
-            LD=ld.lld \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi-
