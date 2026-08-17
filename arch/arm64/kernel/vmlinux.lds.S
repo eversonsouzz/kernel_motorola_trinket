@@ -255,10 +255,10 @@ SECTIONS
 	}
 
 #ifdef CONFIG_EFI
-	/* Aliases for the EFI stub inside SECTIONS scope */
-	__efistub__text  = ABSOLUTE(_text);
-	__efistub__edata = ABSOLUTE(_edata);
-	__efistub__end   = ABSOLUTE(_end);
+	/* Aliases sem ABSOLUTE para evitar erros de relocalização PC-relative no lld */
+	__efistub__text  = _text;
+	__efistub__edata = _edata;
+	__efistub__end   = _end;
 #endif
 }
 
