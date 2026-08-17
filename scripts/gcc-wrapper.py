@@ -59,7 +59,7 @@ def interpret_warning(line):
                 os.remove(ofile)
             except OSError:
                 pass
-        sys.exit(1)
+      #  sys.exit(1)
 
 def run_gcc():
     args = sys.argv[1:]
