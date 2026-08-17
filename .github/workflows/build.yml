@@ -41,6 +41,10 @@ jobs:
           # Remove linhas de RTIC do defconfig da fabricante antes de gerar a config
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           
+          # Remove as marcacoes de secao .rtic do SELinux para nao quebrar o linker no vmlinux
+          find security/selinux/ -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i 's/__attribute__((section("\.bss\.rtic")))//g' {} +
+          find security/selinux/ -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i 's/__attribute__((section("\.data\.rtic")))//g' {} +
+          
           mkdir -p out
           
           # Gera a arvore de configuracao inicial
