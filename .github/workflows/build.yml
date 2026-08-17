@@ -1,4 +1,4 @@
-name: Build Kernel Clang
+Name: Build Kernel Clang
 
 on:
   workflow_dispatch:
@@ -15,8 +15,12 @@ jobs:
 
       - name: Setup Compilation Environment
         run: |
-          sudo apt-get update
-          sudo apt-get install -y bc bison flex libssl-dev libelf-dev make git python3 build-essential gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi binutils-aarch64-linux-gnu wget
+          # Redireciona os mirrors instáveis da Azure para os servidores principais da Canonical
+          sudo sed -i 's/azure.archive.ubuntu.com/archive.ubuntu.com/g' /etc/apt/sources.list
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            bc bison flex libssl-dev libelf-dev make git python3 build-essential \
+            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi binutils-aarch64-linux-gnu wget
 
       - name: Setup Clang Toolchain
         run: |
@@ -32,16 +36,16 @@ jobs:
 
       - name: Build Kernel
         run: |
-          # Adiciona o Clang e o GCC ao PATH conforme o guia do Nathan
+          # Adiciona o Clang ao PATH conforme as diretrizes do ClangBuiltLinux
           CLANG_DIR="$PWD/toolchain/clang"
           export PATH="$CLANG_DIR/bin:${PATH}"
           
           mkdir -p out
           
-          # Gera o defconfig
+          # Gera a árvore de configuração para a plataforma Sofia
           make O=out ARCH=arm64 vendor/sofiar_defconfig
           
-          # Compila o kernel usando Clang como compilador e Binutils (GCC/ld.bfd) como montador/linker
+          # Compila o código C com Clang e delega a montagem/linkagem para o Binutils (ld.bfd)
           make -j$(nproc --all) O=out \
             ARCH=arm64 \
             CC=clang \
