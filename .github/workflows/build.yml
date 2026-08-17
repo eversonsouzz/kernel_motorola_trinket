@@ -1,4 +1,4 @@
-name: Build Kernel GCC
+name: Build Kernel Clang
 
 on:
   workflow_dispatch:
@@ -16,7 +16,15 @@ jobs:
       - name: Setup Compilation Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison flex libssl-dev libelf-dev make git python3 build-essential gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi binutils-aarch64-linux-gnu
+          sudo apt-get install -y bc bison flex libssl-dev libelf-dev make git python3 build-essential gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi binutils-aarch64-linux-gnu wget
+
+      - name: Setup Clang Toolchain
+        run: |
+          mkdir -p toolchain/clang
+          cd toolchain/clang
+          wget https://github.com/prabhatkrmishra/android-kernel-tools/releases/download/clang-r353983c/clang-r353983c.gz
+          tar -xvzf clang-r353983c.gz
+          cd ../..
 
       - name: Setup KernelSU
         run: |
@@ -27,11 +35,17 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           
+          # Adiciona o Clang ao PATH e define o diretório base da toolchain
+          CLANG_DIR="$PWD/toolchain/clang"
+          export PATH="$CLANG_DIR/bin:$PATH"
+          
           mkdir -p out
           
           make O=out vendor/sofiar_defconfig
           
           make -j$(nproc) O=out \
             ARCH=arm64 \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi-
