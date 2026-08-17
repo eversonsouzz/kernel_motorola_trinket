@@ -253,16 +253,14 @@ SECTIONS
 	.bss : {			/* bss segment		*/
          RTIC_BSS
 	}
-}
 
 #ifdef CONFIG_EFI
-/*
- * Aliases for the EFI stub to locate kernel regions safely without absolute reloc errors
- */
-__efistub__text	= _text;
-__efistub__edata	= _edata;
-__efistub__end		= _end;
+	/* Aliases for the EFI stub inside SECTIONS scope */
+	__efistub__text  = ABSOLUTE(_text);
+	__efistub__edata = ABSOLUTE(_edata);
+	__efistub__end   = ABSOLUTE(_end);
 #endif
+}
 
 /*
  * The HYP init code and ID map text can't be longer than a page each,
