@@ -27,40 +27,26 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Invoke gcc, looking for warnings, and causing a failure if there are
-# non-whitelisted warnings.
-
 import errno
 import re
 import os
 import sys
 import subprocess
 
-# Note that gcc uses unicode, which may depend on the locale.  TODO:
-# force LANG to be set to en_US.UTF-8 to get consistent warnings.
-
-allowed_warnings = set([
- ])
-
-# Capture the name of the object file, can find it.
 ofile = None
 
-warning_re = re.compile(r'''(.*/|)([^/]+\.[a-z]+:\d+):(\d+:)? warning:''')
 def interpret_warning(line):
-    """Decode the message from gcc.  The messages we care about have a filename, and a warning"""
-    return  # Ignora completamente qualquer checagem ou erro de warning
+    """Ignora completamente qualquer checagem ou erro de warning"""
+    pass
 
 def run_gcc():
     args = sys.argv[1:]
-    # Look for -o
     try:
         i = args.index('-o')
         global ofile
         ofile = args[i+1]
     except (ValueError, IndexError):
         pass
-
-    compiler = sys.argv[0]
 
     try:
         proc = subprocess.Popen(args, stderr=subprocess.PIPE, text=True)
