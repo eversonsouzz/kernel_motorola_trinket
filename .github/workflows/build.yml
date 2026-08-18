@@ -1,4 +1,4 @@
-name: Build Kernel Clang
+Name: Build Kernel Clang
 
 on:
   workflow_dispatch:
@@ -74,3 +74,12 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             KCFLAGS="-fno-pic -fno-pie"
+
+      - name: Upload Kernel Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-Image
+          path: |
+            out/arch/arm64/boot/Image.gz-dtb
+            out/arch/arm64/boot/dtbo.img
+          if-no-files-found: warn
