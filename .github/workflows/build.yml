@@ -29,8 +29,6 @@ jobs:
           tar -xvzf clang-r353983c.gz
           cd ../..
 
-      
-
       - name: Patch RTIC Dependencies & Build
         run: |
           CLANG_DIR="$PWD/toolchain/clang"
@@ -66,6 +64,7 @@ jobs:
           
           # Add syscall hook
           curl https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh | bash
+          ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
           
           # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
