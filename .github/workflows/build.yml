@@ -29,7 +29,10 @@ jobs:
           tar -xvzf clang-r353983c.gz
           cd ../..
 
-      
+      - name: Setup KernelSU
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+
       - name: Patch RTIC Dependencies & Build
         run: |
           CLANG_DIR="$PWD/toolchain/clang"
@@ -60,8 +63,11 @@ jobs:
           # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
           
-          # Add KernelSU-Next
+          # Setup ReSukiSU-Ultra
           curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
+          
+          # Add syscall hook
+          curl https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh | bash
           
           # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
