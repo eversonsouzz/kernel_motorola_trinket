@@ -58,6 +58,11 @@ jobs:
           
           # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
+
+          # PREVENCAO DE TROCA INVOLUNTARIA DE SLOT A/B
+          # Anula a contagem do retry do bootloader e desativa fallback forçado
+          ./scripts/config --file out/.config --set-str CMDLINE "androidboot.boot_retry=0 androidboot.force_normal_boot=1"
+          ./scripts/config --file out/.config --enable CMDLINE_EXTEND
           
           # Setup ReSukiSU-Ultra
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
