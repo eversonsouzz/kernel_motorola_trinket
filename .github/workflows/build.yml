@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - eleven
- 
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -62,10 +62,10 @@ jobs:
           # Setup ReSukiSU-Ultra
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
           
-          # Patch cirurgico de Keyring no ReSukiSU (Corrige FBE / ENOKEY / .allowlist vazia no boot)
+          # Redireciona a allowlist e a estrutura de perfis do ReSukiSU para /metadata/
           if [ -d drivers/kernelsu ]; then
-            find drivers/kernelsu -type f \( -name "ksu.c" -o -name "ksud.c" -o -name "allowlist.c" \) -exec sed -i '/#include <linux\/sched.h>/a #include <linux\/key.h>\n#include <linux\/cred.h>' {} +
-            find drivers/kernelsu -type f \( -name "ksu.c" -o -name "ksud.c" -o -name "allowlist.c" \) -exec sed -i '/ksu_core_init/a \    install_session_keyring_to_coords(find_task_by_vpid(1), NULL);' {} +
+            echo "Redirecionando pasta base do ReSukiSU para /metadata/ksu..."
+            grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
           fi
 
           # Add syscall hook
