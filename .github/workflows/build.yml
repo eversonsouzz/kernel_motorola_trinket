@@ -66,11 +66,11 @@ jobs:
           curl https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh | bash
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
           
-          # Automacao do symlink alinhada corretamente dentro do bloco run
+          # Automacao do symlink ajustada perfeitamente no fluxo do bash
           if [ -d drivers/kernelsu ]; then
-            KSU_RC=$(find drivers/kernelsu -name "*.rc" | head -n 1)
-            if [ -n "$KSU_RC" ]; then
-              echo -e "\non post-fs-data\n    exec u:r:su:s0 root root -- /system/bin/sh -c \"ln -sf /metadata/packages.list /data/system/packages.list\"" >> "$KSU_RC"
+            KSU_RC_FILE=$(find drivers/kernelsu -name "*.rc" | head -n 1)
+            if [ -n "$KSU_RC_FILE" ]; then
+              echo -e "\non post-fs-data\n    exec u:r:su:s0 root root -- /system/bin/sh -c \"ln -sf /metadata/packages.list /data/system/packages.list\"" >> "$KSU_RC_FILE"
             fi
           fi
 
