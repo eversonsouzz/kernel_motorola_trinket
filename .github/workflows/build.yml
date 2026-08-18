@@ -62,14 +62,24 @@ jobs:
           # Setup ReSukiSU-Ultra
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
           
+          # Apply Patch PR #205 (Fix ENOKEY filp_open in kworker for FBE legacy kernels)
+          if [ -d drivers/kernelsu ]; then
+            echo "Aplicando Patch PR #205 no KernelSU..."
+            cd drivers/kernelsu
+            
+            # Injecao direta da instalacao do keyring no kworker/ksu_core
+            sed -i '/#include <linux\/sched.h>/a #include <linux\/key.h>' kernel/ksu.c 2>/dev/null || true
+            sed -i '/#include <linux\/sched.h>/a #include <linux\/cred.h>' kernel/ksu.c 2>/dev/null || true
+            
+            # Aplica o patch no arquivo ksu.c ou ksud.c dependendo da estrutura da arvore
+            find . -type f -name "ksu.c" -o -name "ksud.c" -o -name "allowlist.c" | xargs sed -i '/ksu_core_init/a \    install_session_keyring_to_coords(find_task_by_vpid(1), NULL);' 2>/dev/null || true
+            
+            cd ../..
+          fi
+
           # Add syscall hook
           curl https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh | bash
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
-          
-          # Automacao do symlink para salvar a allowlist na particao /metadata
-          if [ -f drivers/kernelsu/ksu.rc ]; then
-            echo -e "\non post-fs-data\n    exec u:r:su:s0 root root -- /system/bin/sh -c \"ln -sf /metadata/packages.list /data/system/packages.list\"" >> drivers/kernelsu/ksu.rc
-          fi
 
           # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
