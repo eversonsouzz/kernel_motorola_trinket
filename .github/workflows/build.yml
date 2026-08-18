@@ -41,7 +41,7 @@ jobs:
           # Remove linhas de RTIC do defconfig da fabricante
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           
-          # Limpa secoes .rtic apenas do codigo fonte (C, H, S) sem tocar no .git ou out
+          # Limpa secoes .rtic do codigo fonte sem afetar o .git ou pasta out
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
           
           mkdir -p out
@@ -52,10 +52,13 @@ jobs:
           # Garante permissao de execucao no script de config
           chmod +x scripts/config
           
-          # Desativa explicitamente as flags do RTIC no .config gerado
+          # Desativa o RTIC no .config gerado
           ./scripts/config --file out/.config --disable MSM_RTIC
           ./scripts/config --file out/.config --disable QCACLD_RTIC
           ./scripts/config --file out/.config --disable SELINUX_RTIC
+          
+          # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
+          ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
           
           # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
