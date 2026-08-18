@@ -29,10 +29,7 @@ jobs:
           tar -xvzf clang-r353983c.gz
           cd ../..
 
-      - name: Setup KernelSU
-        run: |
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
-
+      
       - name: Patch RTIC Dependencies & Build
         run: |
           CLANG_DIR="$PWD/toolchain/clang"
