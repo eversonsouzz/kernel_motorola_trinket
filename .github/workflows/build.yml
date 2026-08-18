@@ -30,6 +30,7 @@ jobs:
           cd ../..
 
       
+
       - name: Patch RTIC Dependencies & Build
         run: |
           CLANG_DIR="$PWD/toolchain/clang"
@@ -61,10 +62,11 @@ jobs:
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
           
           # Setup ReSukiSU-Ultra
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
+          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
           
           # Add syscall hook
-          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+          curl https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh | bash
+          
           # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
           
