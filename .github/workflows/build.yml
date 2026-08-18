@@ -31,8 +31,8 @@ jobs:
 
       - name: Setup KernelSU
         run: |
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
-
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
+          
       - name: Patch RTIC Dependencies & Build
         run: |
           CLANG_DIR="$PWD/toolchain/clang"
