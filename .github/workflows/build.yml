@@ -1,4 +1,4 @@
-name: Build Kernel Clang
+Name: Build Kernel Clang
 
 on:
   workflow_dispatch:
@@ -66,6 +66,11 @@ jobs:
           curl https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh | bash
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
           
+          # Automacao do symlink para salvar a allowlist na particao /metadata
+          if [ -f drivers/kernelsu/ksu.rc ]; then
+            echo -e "\non post-fs-data\n    exec u:r:su:s0 root root -- /system/bin/sh -c \"ln -sf /metadata/packages.list /data/system/packages.list\"" >> drivers/kernelsu/ksu.rc
+          fi
+
           # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
           
