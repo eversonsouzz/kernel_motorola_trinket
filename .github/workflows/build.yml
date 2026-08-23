@@ -42,12 +42,18 @@ jobs:
           # --- INTEGRACAO NOMOUNT (maxsteeel/nomount) ---
           echo "Integrando NoMount ao Kernel..."
           git clone https://github.com/maxsteeel/nomount.git nomount_tmp
+          
+          # Passo 1: Aplicar o Patch de Hooks do NoMount
+          if ls nomount_tmp/kernel/*.patch 1> /dev/null 2>&1; then
+            echo "Aplicando patch principal do NoMount..."
+            patch -p1 < nomount_tmp/kernel/*.patch || echo "Aviso: Patch aplicado com offsets ou ja integrado."
+          elif ls nomount_tmp/kernel/patch/*.patch 1> /dev/null 2>&1; then
+            patch -p1 < nomount_tmp/kernel/patch/*.patch || echo "Aviso: Patch aplicado com offsets."
+          fi
+
+          # Passo 2: Copiar fontes diretamente para fs/
           if [ -d "nomount_tmp/kernel/src" ]; then
             cp -r nomount_tmp/kernel/src/* fs/
-            # Tenta aplicar o patch de hooks correspondente se disponível
-            if ls nomount_tmp/kernel/patch/*.patch 1> /dev/null 2>&1; then
-              patch -p1 < nomount_tmp/kernel/patch/*.patch || echo "Aviso: Patch do NoMount precisou de ajuste manual ou já foi aplicado."
-            fi
           fi
           rm -rf nomount_tmp
 
@@ -61,17 +67,18 @@ jobs:
           ./scripts/config --file out/.config --disable SELINUX_RTIC
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          
           # --- HABILITANDO NOMOUNT E NAMESPACES ---
           ./scripts/config --file out/.config --enable CONFIG_NOMOUNT
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
           ./scripts/config --file out/.config --enable CONFIG_USER_NS
           ./scripts/config --file out/.config --enable CONFIG_PID_NS
+          ./scripts/config --file out/.config --enable CONFIG_NET_NS
 
           # --- COMPRESSAO ZSTD NA ZRAM ---
           ./scripts/config --file out/.config --enable CONFIG_CRYPTO_ZSTD
           ./scripts/config --file out/.config --enable CONFIG_ZSTD_COMPRESS
           ./scripts/config --file out/.config --enable CONFIG_ZSTD_DECOMPRESS
+          ./scripts/config --file out/.config --enable CONFIG_ZRAM_WRITEBACK
           ./scripts/config --file out/.config --enable CONFIG_ZRAM_DEF_COMP_ZSTD
           ./scripts/config --file out/.config --set-str CONFIG_ZRAM_DEF_COMP "zstd"
 
