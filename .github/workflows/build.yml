@@ -74,15 +74,15 @@ jobs:
           ./scripts/config --file out/.config --enable CONFIG_PID_NS
           ./scripts/config --file out/.config --enable CONFIG_NET_NS
 
-          # --- COMPRESSAO ZSTD, 3GB ZRAM E SWAPPINESS 100 ---
+          # --- COMPRESSAO ZSTD, 3.5GB ZRAM E SWAPPINESS 80 ---
           ./scripts/config --file out/.config --enable CONFIG_CRYPTO_ZSTD
           ./scripts/config --file out/.config --enable CONFIG_ZSTD_COMPRESS
           ./scripts/config --file out/.config --enable CONFIG_ZSTD_DECOMPRESS
           ./scripts/config --file out/.config --enable CONFIG_ZRAM_WRITEBACK
           ./scripts/config --file out/.config --enable CONFIG_ZRAM_DEF_COMP_ZSTD
           ./scripts/config --file out/.config --set-str CONFIG_ZRAM_DEF_COMP "zstd"
-          ./scripts/config --file out/.config --set-val CONFIG_ZRAM_DEF_DISKSIZE_MB 3072
-          ./scripts/config --file out/.config --set-val CONFIG_DEFAULT_SWAPPINESS 100
+          ./scripts/config --file out/.config --set-val CONFIG_ZRAM_DEF_DISKSIZE_MB 3584
+          ./scripts/config --file out/.config --set-val CONFIG_DEFAULT_SWAPPINESS 80
 
           # --- CONFIGURACAO RESUKISU-ULTRA ---
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
