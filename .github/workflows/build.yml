@@ -29,7 +29,7 @@ jobs:
           tar -xvzf clang-r353983c.gz
           cd ../..
 
-      - name: Patch RTIC, Configs & Build
+      - name: Integration, Patch & Build
         run: |
           CLANG_DIR="$PWD/toolchain/clang"
           export PATH="$CLANG_DIR/bin:${PATH}"
@@ -39,6 +39,18 @@ jobs:
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
           sed -i 's/config KALLSYMS_BASE_RELATIVE/config KALLSYMS_BASE_RELATIVE\n\tdepends on BROKEN/g' init/Kconfig
           
+          # --- INTEGRACAO NOMOUNT (maxsteeel/nomount) ---
+          echo "Integrando NoMount ao Kernel..."
+          git clone https://github.com/maxsteeel/nomount.git nomount_tmp
+          if [ -d "nomount_tmp/kernel/src" ]; then
+            cp -r nomount_tmp/kernel/src/* fs/
+            # Tenta aplicar o patch de hooks correspondente se disponível
+            if ls nomount_tmp/kernel/patch/*.patch 1> /dev/null 2>&1; then
+              patch -p1 < nomount_tmp/kernel/patch/*.patch || echo "Aviso: Patch do NoMount precisou de ajuste manual ou já foi aplicado."
+            fi
+          fi
+          rm -rf nomount_tmp
+
           mkdir -p out
           make O=out ARCH=arm64 vendor/sofiar_defconfig
           chmod +x scripts/config
@@ -50,14 +62,11 @@ jobs:
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
           
-
-          # --- SUPORTE A NONMOUNT / NAMESPACES (ReSukiSU) ---
+          # --- HABILITANDO NOMOUNT E NAMESPACES ---
+          ./scripts/config --file out/.config --enable CONFIG_NOMOUNT
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
-          ./scripts/config --file out/.config --enable CONFIG_UTS_NS
-          ./scripts/config --file out/.config --enable CONFIG_IPC_NS
           ./scripts/config --file out/.config --enable CONFIG_USER_NS
           ./scripts/config --file out/.config --enable CONFIG_PID_NS
-          ./scripts/config --file out/.config --enable CONFIG_NET_NS
 
           # --- COMPRESSAO ZSTD NA ZRAM ---
           ./scripts/config --file out/.config --enable CONFIG_CRYPTO_ZSTD
