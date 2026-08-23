@@ -67,12 +67,13 @@ jobs:
           ./scripts/config --file out/.config --disable SELINUX_RTIC
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # --- HABILITANDO NOMOUNT E NAMESPACES ---
+          # --- HABILITANDO NOMOUNT, NAMESPACES E EROFS ---
           ./scripts/config --file out/.config --enable CONFIG_NOMOUNT
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
           ./scripts/config --file out/.config --enable CONFIG_USER_NS
           ./scripts/config --file out/.config --enable CONFIG_PID_NS
           ./scripts/config --file out/.config --enable CONFIG_NET_NS
+          ./scripts/config --file out/.config --enable CONFIG_EROFS_FS
 
           # --- COMPRESSAO ZSTD, 3.5GB ZRAM E SWAPPINESS 80 ---
           ./scripts/config --file out/.config --enable CONFIG_CRYPTO_ZSTD
@@ -83,6 +84,13 @@ jobs:
           ./scripts/config --file out/.config --set-str CONFIG_ZRAM_DEF_COMP "zstd"
           ./scripts/config --file out/.config --set-val CONFIG_ZRAM_DEF_DISKSIZE_MB 3584
           ./scripts/config --file out/.config --set-val CONFIG_DEFAULT_SWAPPINESS 80
+
+          # --- TRAVA DE SOBRESCRITA DIRETO NO DRIVER DA ZRAM (IGNORA FSTAB DO VENDOR) ---
+          if [ -f drivers/block/zram/zram_drv.c ]; then
+            echo "Aplicando modificação para ignorar comandos do fstab na zRAM..."
+            sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
+            sed -i 's/zram->disksize = disksize;/zram->disksize = (disksize < 3758096384) ? 3758096384 : disksize;/g' drivers/block/zram/zram_drv.c
+          fi
 
           # --- CONFIGURACAO RESUKISU-ULTRA ---
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
