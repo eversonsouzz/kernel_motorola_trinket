@@ -38,23 +38,12 @@ jobs:
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
           sed -i 's/config KALLSYMS_BASE_RELATIVE/config KALLSYMS_BASE_RELATIVE\n\tdepends on BROKEN/g' init/Kconfig
-          
-          # --- INTEGRACAO NOMOUNT VIA JACKA1LTMAN SCRIPT ---
-          echo "Baixando fontes do NoMount..."
-          git clone https://github.com/maxsteeel/nomount.git nomount_tmp
-          mkdir -p fs/nomount
-          if [ -d "nomount_tmp/kernel/src" ]; then
-            cp -r nomount_tmp/kernel/src/* fs/nomount/
-          elif [ -d "nomount_tmp/src" ]; then
-            cp -r nomount_tmp/src/* fs/nomount/
+
+          # --- ALTERACAO DIRETA NO DRIVER DA ZRAM ---
+          if [ -f drivers/block/zram/zram_drv.c ]; then
+            echo "Forcando algoritmo ZSTD no driver da zRAM..."
+            sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
           fi
-          rm -rf nomount_tmp
-
-          echo "Aplicando patches do NoMount via script..."
-          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/mainline/Patches/NoMount/nomount_patches.sh" | bash
-
-          # Correção: direciona o Makefile para a pasta fs/nomount/
-          sed -i 's|nomount.o|nomount/|g' fs/Makefile
 
           mkdir -p out
           make O=out ARCH=arm64 vendor/sofiar_defconfig
@@ -66,14 +55,11 @@ jobs:
           ./scripts/config --file out/.config --disable SELINUX_RTIC
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # --- HABILITANDO NOMOUNT, NAMESPACES, OVERLAYFS E EROFS ---
-          ./scripts/config --file out/.config --enable CONFIG_NOMOUNT
-          ./scripts/config --file out/.config --enable CONFIG_OVERLAY_FS
+          # --- HABILITANDO NAMESPACES ---
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
           ./scripts/config --file out/.config --enable CONFIG_USER_NS
           ./scripts/config --file out/.config --enable CONFIG_PID_NS
           ./scripts/config --file out/.config --enable CONFIG_NET_NS
-          ./scripts/config --file out/.config --enable CONFIG_EROFS_FS
 
           # --- COMPRESSAO ZSTD, 3.5GB ZRAM E SWAPPINESS 80 ---
           ./scripts/config --file out/.config --enable CONFIG_CRYPTO_ZSTD
@@ -84,13 +70,6 @@ jobs:
           ./scripts/config --file out/.config --set-str CONFIG_ZRAM_DEF_COMP "zstd"
           ./scripts/config --file out/.config --set-val CONFIG_ZRAM_DEF_DISKSIZE_MB 3584
           ./scripts/config --file out/.config --set-val CONFIG_DEFAULT_SWAPPINESS 80
-
-          # --- TRAVA DE SOBRESCRITA DIRETO NO DRIVER DA ZRAM ---
-          if [ -f drivers/block/zram/zram_drv.c ]; then
-            echo "Aplicando modificação para ignorar comandos do fstab na zRAM..."
-            sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
-            sed -i 's/zram->disksize = disksize;/zram->disksize = (disksize < 3758096384) ? 3758096384 : disksize;/g' drivers/block/zram/zram_drv.c
-          fi
 
           # --- CONFIGURACAO RESUKISU-ULTRA ---
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
