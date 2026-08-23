@@ -314,4 +314,11 @@ config FILE_TABLE_DEBUG
 	help
 	  This option enables debug of the open files using a global filetable
 
+config NOMOUNT
+	bool "NoMount VFS Injection Support"
+	default y
+	help
+	  Enable NoMount kernel-based file injection and path redirection.
+
+
 endmenu
