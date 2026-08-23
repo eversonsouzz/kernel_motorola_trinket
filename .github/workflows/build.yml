@@ -50,8 +50,11 @@ jobs:
           fi
           rm -rf nomount_tmp
 
-          echo "Aplicando patches do NoMount via script do JackA1ltman..."
+          echo "Aplicando patches do NoMount via script..."
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/mainline/Patches/NoMount/nomount_patches.sh" | bash
+
+          # Correção: direciona o Makefile para a pasta fs/nomount/
+          sed -i 's|nomount.o|nomount/|g' fs/Makefile
 
           mkdir -p out
           make O=out ARCH=arm64 vendor/sofiar_defconfig
@@ -82,7 +85,7 @@ jobs:
           ./scripts/config --file out/.config --set-val CONFIG_ZRAM_DEF_DISKSIZE_MB 3584
           ./scripts/config --file out/.config --set-val CONFIG_DEFAULT_SWAPPINESS 80
 
-          # --- TRAVA DE SOBRESCRITA DIRETO NO DRIVER DA ZRAM (IGNORA FSTAB DO VENDOR) ---
+          # --- TRAVA DE SOBRESCRITA DIRETO NO DRIVER DA ZRAM ---
           if [ -f drivers/block/zram/zram_drv.c ]; then
             echo "Aplicando modificação para ignorar comandos do fstab na zRAM..."
             sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
