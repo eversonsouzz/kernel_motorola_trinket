@@ -37,7 +37,6 @@ jobs:
           # Limpeza de dependencias RTIC do defconfig e codigo fonte
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
-          sed -i 's/config KALLSYMS_BASE_RELATIVE/config KALLSYMS_BASE_RELATIVE\n\tdepends on BROKEN/g' init/Kconfig
 
           # --- ALTERACAO DIRETA NO DRIVER DA ZRAM ---
           if [ -f drivers/block/zram/zram_drv.c ]; then
@@ -53,7 +52,11 @@ jobs:
           ./scripts/config --file out/.config --disable MSM_RTIC
           ./scripts/config --file out/.config --disable QCACLD_RTIC
           ./scripts/config --file out/.config --disable SELINUX_RTIC
-          ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
+
+          # --- HABILITANDO SIMBOLOS COMPLETO PARA FOLKPATCH / APATCH ---
+          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
+          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS_ALL
+          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS_BASE_RELATIVE
 
           # --- HABILITANDO NAMESPACES E EROFS ---
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
