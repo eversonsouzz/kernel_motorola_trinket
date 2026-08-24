@@ -55,11 +55,12 @@ jobs:
           ./scripts/config --file out/.config --disable SELINUX_RTIC
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # --- HABILITANDO NAMESPACES ---
+          # --- HABILITANDO NAMESPACES E EROFS ---
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
           ./scripts/config --file out/.config --enable CONFIG_USER_NS
           ./scripts/config --file out/.config --enable CONFIG_PID_NS
           ./scripts/config --file out/.config --enable CONFIG_NET_NS
+          ./scripts/config --file out/.config --enable CONFIG_EROFS_FS
 
           # --- COMPRESSAO ZSTD, 3.5GB ZRAM E SWAPPINESS 80 ---
           ./scripts/config --file out/.config --enable CONFIG_CRYPTO_ZSTD
@@ -74,6 +75,7 @@ jobs:
           # --- CONFIGURACAO RESUKISU-ULTRA ---
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
           
+          # Redireciona a allowlist e a estrutura de perfis do ReSukiSU para /metadata/
           if [ -d drivers/kernelsu ]; then
             echo "Redirecionando pasta base do ReSukiSU para /metadata/ksu..."
             grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
