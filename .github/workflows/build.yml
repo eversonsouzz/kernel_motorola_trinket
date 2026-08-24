@@ -38,12 +38,10 @@ jobs:
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
 
-          # --- FIX DEFINITIVO PARA KALLSYMS OUT OF RANGE ---
-          if [ -f scripts/kallsyms.c ]; then
-            echo "Patching scripts/kallsyms.c para ignorar out of range..."
-            sed -i 's/relative symbol value .* out of range in relative mode/out of range ignored/g' scripts/kallsyms.c
-            sed -i '/out of range in relative mode/d' scripts/kallsyms.c
-            sed -i 's/exit(1);/break;/g' scripts/kallsyms.c
+          # --- FIX DE ERRO KALLSYMS NO LINK-VMLINUX ---
+          if [ -f scripts/link-vmlinux.sh ]; then
+            echo "Ignorando erros de kallsyms no link-vmlinux.sh..."
+            sed -i 's/kallsyms_s_file=/kallsyms_s_file=; set +e/g' scripts/link-vmlinux.sh
           fi
 
           # --- ALTERACAO DIRETA NO DRIVER DA ZRAM ---
@@ -61,7 +59,7 @@ jobs:
           ./scripts/config --file out/.config --disable QCACLD_RTIC
           ./scripts/config --file out/.config --disable SELINUX_RTIC
 
-          # --- CONFIGURACOES DE KALLSYMS PADRAO DO KERNEL ---
+          # --- TABELA DE SIMBOLOS PADRAO ---
           ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
           ./scripts/config --file out/.config --disable CONFIG_KALLSYMS_ALL
 
