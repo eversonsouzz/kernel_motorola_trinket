@@ -53,9 +53,9 @@ jobs:
           ./scripts/config --file out/.config --disable QCACLD_RTIC
           ./scripts/config --file out/.config --disable SELINUX_RTIC
 
-          # --- FIX KALLSYMS OUT OF RANGE (BASE ABSOLUTA PARA FOLKPATCH) ---
+          # --- TABELA DE SIMBOLOS COMPATIVEL (SEM ESTOURAR KALLSYMS) ---
           ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
-          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS_ALL
+          ./scripts/config --file out/.config --disable CONFIG_KALLSYMS_ALL
           ./scripts/config --file out/.config --disable CONFIG_KALLSYMS_BASE_RELATIVE
 
           # --- HABILITANDO NAMESPACES E EROFS ---
