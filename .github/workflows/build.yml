@@ -34,17 +34,23 @@ jobs:
           CLANG_DIR="$PWD/toolchain/clang"
           export PATH="$CLANG_DIR/bin:${PATH}"
           
+          # --- INTEGRACAO RESUKISU & SYSCALL HOOKS (Antes de gerar o defconfig) ---
+          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+          
+          # Syscall hook patch para KernelSU/ReSukiSU em kernels Non-GKI
+          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh" | bash
+
+          # Redireciona a allowlist e a estrutura de perfis do ReSukiSU para /metadata/
+          if [ -d drivers/kernelsu ]; then
+            echo "Redirecionando pasta base do ReSukiSU para /metadata/ksu..."
+            grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
+          fi
+
           # Limpeza de dependencias RTIC do defconfig e codigo fonte
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
 
-          # --- FIX DE ERRO KALLSYMS NO LINK-VMLINUX ---
-          if [ -f scripts/link-vmlinux.sh ]; then
-            echo "Ignorando erros de kallsyms no link-vmlinux.sh..."
-            sed -i 's/kallsyms_s_file=/kallsyms_s_file=; set +e/g' scripts/link-vmlinux.sh
-          fi
-
-          # --- ALTERACAO DIRETA NO DRIVER DA ZRAM ---
+          # Alteracao direta no driver da zRAM
           if [ -f drivers/block/zram/zram_drv.c ]; then
             echo "Forcando algoritmo ZSTD no driver da zRAM..."
             sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
@@ -54,14 +60,18 @@ jobs:
           make O=out ARCH=arm64 vendor/sofiar_defconfig
           chmod +x scripts/config
 
+          # --- HABILITANDO RESUKISU E HOOKS NO .CONFIG ---
+          ./scripts/config --file out/.config --enable CONFIG_KSU
+          ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
+
+          # --- TABELA DE SIMBOLOS PARA O RESUKISU ---
+          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
+          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS_ALL
+
           # --- CONFIGURACOES DE SEGURANCA E ESTABILIDADE ---
           ./scripts/config --file out/.config --disable MSM_RTIC
           ./scripts/config --file out/.config --disable QCACLD_RTIC
           ./scripts/config --file out/.config --disable SELINUX_RTIC
-
-          # --- TABELA DE SIMBOLOS PADRAO ---
-          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
-          ./scripts/config --file out/.config --disable CONFIG_KALLSYMS_ALL
 
           # --- HABILITANDO NAMESPACES E EROFS ---
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
