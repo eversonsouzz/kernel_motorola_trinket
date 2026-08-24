@@ -72,19 +72,6 @@ jobs:
           ./scripts/config --file out/.config --set-val CONFIG_ZRAM_DEF_DISKSIZE_MB 3584
           ./scripts/config --file out/.config --set-val CONFIG_DEFAULT_SWAPPINESS 80
 
-          # --- CONFIGURACAO RESUKISU-ULTRA ---
-          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
-          
-          # Redireciona a allowlist e a estrutura de perfis do ReSukiSU para /metadata/
-          if [ -d drivers/kernelsu ]; then
-            echo "Redirecionando pasta base do ReSukiSU para /metadata/ksu..."
-            grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
-          fi
-
-          # Syscall hook patch
-          curl https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh | bash
-          ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
-
           # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
           
