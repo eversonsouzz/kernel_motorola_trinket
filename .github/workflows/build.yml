@@ -49,17 +49,8 @@ jobs:
             sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
           fi
 
-          # Setup ReSukiSU via clonagem
-          rm -rf drivers/kernelsu
-          git clone https://github.com/rsuntk/ReSukiSU drivers/kernelsu
-          
-          # Injeta drivers/kernelsu na árvore do Kernel
-          if ! grep -q "kernelsu" drivers/Makefile; then
-            echo 'obj-y += kernelsu/' >> drivers/Makefile
-          fi
-          if ! grep -q "kernelsu" drivers/Kconfig; then
-            sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
-          fi
+          # Setup ReSukiSU-Ultra via script raw oficial
+          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
 
           # Setup NoMount
           curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/setup.sh" | bash
@@ -76,9 +67,9 @@ jobs:
           # Add patch complementar de suporte a NoMount
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/NoMount/nomount_patches.sh" | bash
 
-          # Evita a sufixação de -dirty na versão
+          # Evita o sufixo -dirty na versao do kernel
           touch .scmversion
-          touch drivers/kernelsu/.scmversion
+          touch drivers/kernelsu/.scmversion 2>/dev/null || true
 
           mkdir -p out
           
