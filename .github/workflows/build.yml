@@ -29,56 +29,63 @@ jobs:
           tar -xvzf clang-r353983c.gz
           cd ../..
 
-      - name: Integration, Patch & Build
+      - name: Patch RTIC Dependencies & Build
         run: |
           CLANG_DIR="$PWD/toolchain/clang"
           export PATH="$CLANG_DIR/bin:${PATH}"
           
-          # --- CONFIGURACAO RESUKISU-ULTRA ---
-          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
-          
-          # Syscall hook patch
-          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh" | bash
-
-          # Redireciona a allowlist e a estrutura de perfis do ReSukiSU para /metadata/
-          if [ -d drivers/kernelsu ]; then
-            echo "Redirecionando pasta base do ReSukiSU para /metadata/ksu..."
-            grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
-          fi
-
-          # Limpeza de dependencias RTIC do defconfig e codigo fonte
+          # Remove linhas de RTIC do defconfig da fabricante
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
+          
+          # Limpa secoes .rtic do codigo fonte sem afetar o .git ou pasta out
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
-
-          # --- ALTERACAO DIRETA NO DRIVER DA ZRAM ---
+          
+          # Forca a remocao do KALLSYMS_BASE_RELATIVE na raiz da regra Kconfig
+          sed -i 's/config KALLSYMS_BASE_RELATIVE/config KALLSYMS_BASE_RELATIVE\n\tdepends on BROKEN/g' init/Kconfig
+          
+          # Alteração direta no driver da zRAM
           if [ -f drivers/block/zram/zram_drv.c ]; then
             echo "Forcando algoritmo ZSTD no driver da zRAM..."
             sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
           fi
 
           mkdir -p out
+          
+          # Gera a arvore de configuracao inicial
           make O=out ARCH=arm64 vendor/sofiar_defconfig
+          
+          # Garante permissao de execucao no script de config
           chmod +x scripts/config
-
-          # --- CONFIGURACOES DE SEGURANCA E ESTABILIDADE ---
+          
+          # Desativa o RTIC no .config gerado
           ./scripts/config --file out/.config --disable MSM_RTIC
           ./scripts/config --file out/.config --disable QCACLD_RTIC
           ./scripts/config --file out/.config --disable SELINUX_RTIC
+          
+          # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
+          ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # --- CONFIGURACOES PARA RESUKISU E HOOK MANUALL ---
-          ./scripts/config --file out/.config --enable CONFIG_KSU
+          # Setup ReSukiSU-Ultra
+          curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+          
+          # Redireciona a allowlist e a estrutura de perfis do ReSukiSU para /metadata/
+          if [ -d drivers/kernelsu ]; then
+            echo "Redirecionando pasta base do ReSukiSU para /metadata/ksu..."
+            grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
+          fi
+
+          # Add syscall hook
+          curl https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh | bash
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
-          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
-          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS_ALL
 
-          # --- HABILITANDO NAMESPACES E EROFS ---
+          # Habilitando Namespaces e EROFS
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
           ./scripts/config --file out/.config --enable CONFIG_USER_NS
           ./scripts/config --file out/.config --enable CONFIG_PID_NS
           ./scripts/config --file out/.config --enable CONFIG_NET_NS
           ./scripts/config --file out/.config --enable CONFIG_EROFS_FS
 
-          # --- COMPRESSAO ZSTD, 3.5GB ZRAM E SWAPPINESS 80 ---
+          # Compressao ZSTD, 3.5GB zRAM e Swappiness 80
           ./scripts/config --file out/.config --enable CONFIG_CRYPTO_ZSTD
           ./scripts/config --file out/.config --enable CONFIG_ZSTD_COMPRESS
           ./scripts/config --file out/.config --enable CONFIG_ZSTD_DECOMPRESS
