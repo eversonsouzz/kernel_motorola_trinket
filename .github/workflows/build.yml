@@ -49,13 +49,13 @@ jobs:
             sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
           fi
 
-          # 1. Setup ReSukiSU PRIMEIRO (Prepara drivers/kernelsu)
+          # 1. Setup ReSukiSU PRIMEIRO
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
 
           # 2. Add syscall hook para kernels Non-GKI
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh" | bash
 
-          # 3. Setup NoMount e Patch Complementar (Integrados por ultimo no KernelSU)
+          # 3. Setup NoMount e Patches Complementares
           curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/setup.sh" | bash
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/NoMount/nomount_patches.sh" | bash
 
@@ -65,7 +65,7 @@ jobs:
             grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
           fi
 
-          # Evita a sufixacao de -dirty na versao do kernel
+          # Evita o sufixo -dirty na versao do kernel
           touch .scmversion
           touch drivers/kernelsu/.scmversion 2>/dev/null || true
 
@@ -85,9 +85,10 @@ jobs:
           # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # Habilita as flags no .config
+          # Habilita as flags de KernelSU + NoMount
           ./scripts/config --file out/.config --enable CONFIG_KSU
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
+          ./scripts/config --file out/.config --enable CONFIG_KSU_NOMOUNT
           ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
           ./scripts/config --file out/.config --enable CONFIG_KALLSYMS_ALL
 
