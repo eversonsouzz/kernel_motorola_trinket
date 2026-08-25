@@ -65,18 +65,23 @@ jobs:
           # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # Setup KoWSU
-          curl -LSs "https://raw.githubusercontent.com/deepongi-labs/KernelSU-KoWSU/refs/heads/master/kernel/setup.sh" | bash
+          # Setup KernelSU-Next (branch dev)
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/refs/heads/dev/kernel/setup.sh" | bash -s dev
           
-          # Redireciona a allowlist e a estrutura de perfis do KoWSU para /metadata/
+          # Redireciona a allowlist e a estrutura de perfis do KSU-Next para /metadata/
           if [ -d drivers/kernelsu ]; then
-            echo "Redirecionando pasta base do KoWSU para /metadata/ksu..."
+            echo "Redirecionando pasta base do KernelSU-Next para /metadata/ksu..."
             grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
           fi
 
-          # Add syscall hook
+          # Add syscall hook para kernels Non-GKI
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh" | bash
+          
+          # Habilita as flags no .config
+          ./scripts/config --file out/.config --enable CONFIG_KSU
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
+          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
+          ./scripts/config --file out/.config --enable CONFIG_KALLSYMS_ALL
 
           # Habilitando Namespaces e EROFS
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
