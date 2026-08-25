@@ -29,58 +29,43 @@ jobs:
           tar -xvzf clang-r353983c.gz
           cd ../..
 
-      - name: Patch RTIC Dependencies & Build
+      - name: Patch RTIC & Setup ReSukiSU
         run: |
-          CLANG_DIR="$PWD/toolchain/clang"
-          export PATH="$CLANG_DIR/bin:${PATH}"
-          
-          # Remove linhas de RTIC do defconfig da fabricante
+          # Remove linhas de RTIC do defconfig
           sed -i '/CONFIG_.*_RTIC/d' arch/arm64/configs/vendor/sofiar_defconfig
           
-          # Limpa secoes .rtic do codigo fonte sem afetar o .git ou pasta out
+          # Limpa secoes .rtic do codigo fonte
           find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" \) ! -path "./out/*" -exec sed -i -e 's/\.bss\.rtic/\.bss/g' -e 's/\.data\.rtic/\.data/g' -e 's/\.rtic//g' {} +
           
-          # Forca a remocao do KALLSYMS_BASE_RELATIVE na raiz da regra Kconfig
+          # Forca a remocao do KALLSYMS_BASE_RELATIVE no Kconfig
           sed -i 's/config KALLSYMS_BASE_RELATIVE/config KALLSYMS_BASE_RELATIVE\n\tdepends on BROKEN/g' init/Kconfig
           
-          # Alteração direta no driver da zRAM
+          # Alteração direta no driver da zRAM para ZSTD
           if [ -f drivers/block/zram/zram_drv.c ]; then
             echo "Forcando algoritmo ZSTD no driver da zRAM..."
             sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
           fi
 
-          # 1. Setup ReSukiSU PRIMEIRO
+          # 1. Setup ReSukiSU
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
 
           # 2. Add syscall hook para kernels Non-GKI
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh" | bash
 
-          # 3. Setup NoMount e Patches Complementares
-          curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/setup.sh" | bash
-          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/NoMount/nomount_patches.sh" | bash
-
-          # CORREÇÃO DEFINITIVA DO NOMOUNT: Insere o objeto no Makefile global do drivers/
+          # Redireciona a allowlist do ReSukiSU para /metadata/
           if [ -d drivers/kernelsu ]; then
-            echo "Ajustando inclusao dos fontes do NoMount no build..."
-            # Garante que qualquer arquivo .c de nomount seja adicionado no Makefile do KernelSU
-            for f in drivers/kernelsu/nomount*.c; do
-              if [ -f "$f" ]; then
-                fname=$(basename "$f" .c)
-                echo "kernelsu-objs += ${fname}.o" >> drivers/kernelsu/Makefile
-                echo "obj-y += ${fname}.o" >> drivers/kernelsu/Makefile
-              fi
-            done
-          fi
-
-          # Redireciona a allowlist para /metadata/
-          if [ -d drivers/kernelsu ]; then
-            echo "Redirecionando pasta base para /metadata/ksu..."
+            echo "Redirecionando pasta base do KernelSU para /metadata/ksu..."
             grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
           fi
 
           # Evita o sufixo -dirty na versao do kernel
           touch .scmversion
           touch drivers/kernelsu/.scmversion 2>/dev/null || true
+
+      - name: Configure Kernel
+        run: |
+          CLANG_DIR="$PWD/toolchain/clang"
+          export PATH="$CLANG_DIR/bin:${PATH}"
 
           mkdir -p out
           
@@ -90,22 +75,22 @@ jobs:
           # Garante permissao de execucao no script de config
           chmod +x scripts/config
           
-          # Desativa o RTIC no .config gerado
+          # Desativa RTIC
           ./scripts/config --file out/.config --disable MSM_RTIC
           ./scripts/config --file out/.config --disable QCACLD_RTIC
           ./scripts/config --file out/.config --disable SELINUX_RTIC
           
-          # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
+          # Desativa kallsyms relativo
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # Habilita as flags de KernelSU + NoMount
+          # Habilita ReSukiSU + Manual Hook (SEM NOMOUNT)
           ./scripts/config --file out/.config --enable CONFIG_KSU
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
-          ./scripts/config --file out/.config --enable CONFIG_KSU_NOMOUNT
+          ./scripts/config --file out/.config --disable CONFIG_KSU_NOMOUNT
           ./scripts/config --file out/.config --enable CONFIG_KALLSYMS
           ./scripts/config --file out/.config --enable CONFIG_KALLSYMS_ALL
 
-          # Habilitando Namespaces e EROFS
+          # Namespaces e EROFS
           ./scripts/config --file out/.config --enable CONFIG_NAMESPACES
           ./scripts/config --file out/.config --enable CONFIG_USER_NS
           ./scripts/config --file out/.config --enable CONFIG_PID_NS
@@ -124,8 +109,13 @@ jobs:
 
           # Sincroniza e valida a estrutura final do .config
           make O=out ARCH=arm64 olddefconfig
-          
-          # Compilacao
+
+      - name: Build Kernel (Parallel Jobs)
+        run: |
+          CLANG_DIR="$PWD/toolchain/clang"
+          export PATH="$CLANG_DIR/bin:${PATH}"
+
+          # Executa o make utilizando todos os nucleos de CPU disponiveis na VM
           make -j$(nproc --all) O=out \
             ARCH=arm64 \
             CC=clang \
