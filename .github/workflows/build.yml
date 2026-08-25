@@ -49,6 +49,37 @@ jobs:
             sed -i 's/"lz4"/"zstd"/g' drivers/block/zram/zram_drv.c
           fi
 
+          # Setup ReSukiSU via clonagem
+          rm -rf drivers/kernelsu
+          git clone https://github.com/rsuntk/ReSukiSU drivers/kernelsu
+          
+          # Injeta drivers/kernelsu na árvore do Kernel
+          if ! grep -q "kernelsu" drivers/Makefile; then
+            echo 'obj-y += kernelsu/' >> drivers/Makefile
+          fi
+          if ! grep -q "kernelsu" drivers/Kconfig; then
+            sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
+          fi
+
+          # Setup NoMount
+          curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/setup.sh" | bash
+
+          # Redireciona a allowlist para /metadata/
+          if [ -d drivers/kernelsu ]; then
+            echo "Redirecionando pasta base para /metadata/ksu..."
+            grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
+          fi
+
+          # Add syscall hook para kernels Non-GKI
+          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh" | bash
+          
+          # Add patch complementar de suporte a NoMount
+          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/NoMount/nomount_patches.sh" | bash
+
+          # Evita a sufixação de -dirty na versão
+          touch .scmversion
+          touch drivers/kernelsu/.scmversion
+
           mkdir -p out
           
           # Gera a arvore de configuracao inicial
@@ -65,18 +96,6 @@ jobs:
           # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # Setup KernelSU-Next (branch dev)
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/refs/heads/dev/kernel/setup.sh" | bash -s dev
-          
-          # Redireciona a allowlist e a estrutura de perfis do KSU-Next para /metadata/
-          if [ -d drivers/kernelsu ]; then
-            echo "Redirecionando pasta base do KernelSU-Next para /metadata/ksu..."
-            grep -rnw 'drivers/kernelsu' -e '/data/adb/ksu' | cut -d: -f1 | sort -u | xargs -r sed -i 's|/data/adb/ksu|/metadata/ksu|g'
-          fi
-
-          # Add syscall hook para kernels Non-GKI
-          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/syscall_hook_patches.sh" | bash
-          
           # Habilita as flags no .config
           ./scripts/config --file out/.config --enable CONFIG_KSU
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
