@@ -59,10 +59,17 @@ jobs:
           curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/kernel/setup.sh" | bash
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/NoMount/nomount_patches.sh" | bash
 
-          # FORÇA A COMPILAÇÃO DO NOMOUNT NO MAKEFILE DO KERNELSU
+          # CORREÇÃO DEFINITIVA DO NOMOUNT: Insere o objeto no Makefile global do drivers/
           if [ -d drivers/kernelsu ]; then
-            echo "Forçando inclusão do NoMount no Makefile..."
-            echo 'kernelsu-objs += nomount.o' >> drivers/kernelsu/Makefile
+            echo "Ajustando inclusao dos fontes do NoMount no build..."
+            # Garante que qualquer arquivo .c de nomount seja adicionado no Makefile do KernelSU
+            for f in drivers/kernelsu/nomount*.c; do
+              if [ -f "$f" ]; then
+                fname=$(basename "$f" .c)
+                echo "kernelsu-objs += ${fname}.o" >> drivers/kernelsu/Makefile
+                echo "obj-y += ${fname}.o" >> drivers/kernelsu/Makefile
+              fi
+            done
           fi
 
           # Redireciona a allowlist para /metadata/
@@ -91,7 +98,7 @@ jobs:
           # Desativa kallsyms relativo para corrigir o estouro de tabela de simbolos
           ./scripts/config --file out/.config --disable KALLSYMS_BASE_RELATIVE
 
-          # Habilita as flags no .config
+          # Habilita as flags de KernelSU + NoMount
           ./scripts/config --file out/.config --enable CONFIG_KSU
           ./scripts/config --file out/.config --enable CONFIG_KSU_MANUAL_HOOK
           ./scripts/config --file out/.config --enable CONFIG_KSU_NOMOUNT
